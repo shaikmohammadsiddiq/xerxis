@@ -1,0 +1,88 @@
+package com.basicMCPServer.mcpserver;
+
+import io.modelcontextprotocol.spec.McpSchema;
+import org.springframework.ai.mcp.annotation.McpTool;
+import org.springframework.ai.mcp.annotation.McpToolParam;
+import org.springframework.stereotype.Service;
+import net.sourceforge.plantuml.FileFormat;
+import net.sourceforge.plantuml.FileFormatOption;
+import net.sourceforge.plantuml.SourceStringReader;
+import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.ImageContent;
+
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
+import java.io.FileOutputStream;
+import java.util.List;
+@Service
+public class BasicTools {
+    
+    @McpTool(description="Tells Hello thats it ")
+    public String helloCaller(){
+        return "Hello From Client";
+    }
+    @McpTool(description = "It echos your name back my Friend")
+    public String echo(@McpToolParam(description = "Your Name") String name){
+        return "Hello Friend"+name;
+    }
+    @McpTool(description = "test Envs")
+    public String getEnvs(){
+        return System.getenv("DB_URL");
+    }
+    @McpTool(description = "Renders a technical diagram from PlantUML source and returns it as a PNG image. " +
+    "Input must be valid PlantUML wrapped in @startuml and @enduml. " +
+    "For architecture diagrams, use components such as [Frontend], [API Gateway], " +
+    "[Service], [(Database)] and connect them with arrows such as -->. " +
+    "Do not use Markdown code fences.")
+    public Object create_diagrams(String uml){
+        
+ // Render PlantUML directly into memory
+     try{
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+    SourceStringReader reader = new SourceStringReader(uml);
+
+    reader.outputImage(
+        output,
+        new FileFormatOption(FileFormat.PNG)
+    );
+
+    byte[] imageBytes = output.toByteArray();
+    FileOutputStream fos = new FileOutputStream("architecture.png");
+fos.write(imageBytes);
+fos.close();
+String base64 = Base64.getEncoder()
+        .encodeToString(imageBytes);
+ImageContent image = new ImageContent(
+    null,
+    base64,
+    "image/png"
+);
+       return CallToolResult.builder()
+        .content(List.of(image))
+        .isError(false)
+        .build();
+
+    } catch (Exception e) {
+    return CallToolResult.builder()
+            .content(List.of(
+                new McpSchema.TextContent("Error: " + e.getMessage())
+            ))
+            .isError(true)
+            .build();
+}
+    }
+}
+spring.application.name=mcpserver
+spring.main.bannerMode=off
+logging.pattern.console=
+                <dependency>
+                      <groupId>org.springframework.ai</groupId>
+          <artifactId>spring-ai-starter-mcp-server</artifactId>
+          <version>2.0.0</version>
+                </dependency>
+                <dependency>
+    <groupId>net.sourceforge.plantuml</groupId>
+    <artifactId>plantuml</artifactId>
+    <version>1.2026.5</version>
+        </dependency>
