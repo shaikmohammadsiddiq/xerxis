@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import csv
-import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -10,25 +8,31 @@ from fastmcp import FastMCP
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
 BASE = Path(__file__).resolve().parent
 
 REQUESTS_CSV = BASE / "student_service_requests.csv"
 BILLING_CSV = BASE / "student_billing_records.csv"
-ACTIONS_JSON = BASE / "actions.json"
 
 
 mcp = FastMCP("Higher-Education Registrar Agent")
 
 
-def now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
+# ============================================================
+# COMMON FUNCTION
+# ============================================================
 
 def read_csv(path: Path) -> list[dict[str, str]]:
     """Read a CSV file and return rows as dictionaries."""
 
     if not path.exists():
-        raise FileNotFoundError(f"Missing file: {path.name}")
+        raise FileNotFoundError(
+            f"Missing file: {path.name}"
+        )
 
     with path.open(
         "r",
@@ -36,47 +40,6 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         newline=""
     ) as file:
         return list(csv.DictReader(file))
-
-
-def save_action(
-    action_type: str,
-    request_id: str,
-    details: dict[str, Any]
-) -> dict[str, Any]:
-
-    if ACTIONS_JSON.exists():
-        try:
-            actions = json.loads(
-                ACTIONS_JSON.read_text(encoding="utf-8")
-            )
-        except json.JSONDecodeError:
-            actions = []
-    else:
-        actions = []
-
-    action = {
-        "action_id": (
-            f"ACT-"
-            f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
-        ),
-        "timestamp": now(),
-        "action_type": action_type,
-        "request_id": request_id,
-        "details": details,
-    }
-
-    actions.append(action)
-
-    ACTIONS_JSON.write_text(
-        json.dumps(
-            actions,
-            indent=2,
-            ensure_ascii=False
-        ),
-        encoding="utf-8",
-    )
-
-    return action
 
 
 # ============================================================
@@ -102,82 +65,115 @@ def check_related_history(
     This tool does NOT call an LLM.
     """
 
-    rows = read_csv(REQUESTS_CSV)
-
-    # Only search this student's previous requests
-    student_rows = [
-        row
-        for row in rows
-        if row.get("student_name", "").strip().lower()
-        == student_name.strip().lower()
-    ]
-
-    if not student_rows:
-        return {
-            "student_name": student_name,
-            "historical_request_count": 0,
-            "related_found": False,
-            "matches": [],
-        }
-
-    texts = [
-        row.get("body_text", "")
-        for row in student_rows
-    ]
-
     try:
+        rows = read_csv(REQUESTS_CSV)
 
-        vectorizer = TfidfVectorizer(
-            stop_words="english",
-            ngram_range=(1, 2),
+        # Only search this student's previous requests
+        student_rows = [
+            row
+            for row in rows
+            if row.get(
+                "student_name",
+                ""
+            ).strip().lower()
+            == student_name.strip().lower()
+        ]
+
+        if not student_rows:
+            return {
+                "success": True,
+                "student_name": student_name,
+                "historical_request_count": 0,
+                "related_found": False,
+                "matches": [],
+            }
+
+        texts = [
+            row.get(
+                "body_text",
+                ""
+            )
+            for row in student_rows
+        ]
+
+        try:
+            vectorizer = TfidfVectorizer(
+                stop_words="english",
+                ngram_range=(1, 2),
+            )
+
+            matrix = vectorizer.fit_transform(
+                texts + [body_text]
+            )
+
+            scores = cosine_similarity(
+                matrix[-1],
+                matrix[:-1]
+            ).flatten()
+
+        except ValueError as e:
+            return {
+                "success": False,
+                "tool": "check_related_history",
+                "error": str(e),
+            }
+
+        ranked = sorted(
+            zip(student_rows, scores),
+            key=lambda x: float(x[1]),
+            reverse=True,
         )
 
-        matrix = vectorizer.fit_transform(
-            texts + [body_text]
+        top_k = max(
+            1,
+            min(int(top_k), 10)
         )
 
-        scores = cosine_similarity(
-            matrix[-1],
-            matrix[:-1]
-        ).flatten()
+        matches = []
 
-    except ValueError:
+        for row, score in ranked[:top_k]:
+
+            matches.append({
+                "request_id": row.get(
+                    "request_id"
+                ),
+                "student_name": row.get(
+                    "student_name"
+                ),
+                "student_status": row.get(
+                    "student_status"
+                ),
+                "status": row.get(
+                    "status"
+                ),
+                "submitted_at": row.get(
+                    "submitted_at"
+                ),
+                "body_text": row.get(
+                    "body_text"
+                ),
+                "similarity": round(
+                    float(score),
+                    4
+                ),
+            })
 
         return {
+            "success": True,
             "student_name": student_name,
-            "historical_request_count": len(student_rows),
-            "related_found": False,
-            "matches": [],
+            "historical_request_count": len(
+                student_rows
+            ),
+            "related_found": bool(matches),
+            "matches": matches,
         }
 
-    ranked = sorted(
-        zip(student_rows, scores),
-        key=lambda x: float(x[1]),
-        reverse=True,
-    )
-
-    top_k = max(1, min(int(top_k), 10))
-
-    matches = []
-
-    for row, score in ranked[:top_k]:
-
-        matches.append({
-            "request_id": row.get("request_id"),
-            "student_name": row.get("student_name"),
-            "student_status": row.get("student_status"),
-            "status": row.get("status"),
-            "submitted_at": row.get("submitted_at"),
-            "body_text": row.get("body_text"),
-            "similarity": round(float(score), 4),
-        })
-
-    return {
-        "student_name": student_name,
-        "historical_request_count": len(student_rows),
-        "related_found": bool(matches),
-        "matches": matches,
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "check_related_history",
+            "error": str(e),
+        }
 
 
 # ============================================================
@@ -193,24 +189,37 @@ def get_request_details(
     Retrieve a complete historical request using request_id.
     """
 
-    rows = read_csv(REQUESTS_CSV)
+    try:
+        rows = read_csv(REQUESTS_CSV)
 
-    for row in rows:
+        for row in rows:
 
-        if (
-            row.get("request_id", "").strip().lower()
-            == request_id.strip().lower()
-        ):
+            if (
+                row.get(
+                    "request_id",
+                    ""
+                ).strip().lower()
+                == request_id.strip().lower()
+            ):
 
-            return {
-                "found": True,
-                "request": row,
-            }
+                return {
+                    "success": True,
+                    "found": True,
+                    "request": row,
+                }
 
-    return {
-        "found": False,
-        "request_id": request_id,
-    }
+        return {
+            "success": True,
+            "found": False,
+            "request_id": request_id,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "get_request_details",
+            "error": str(e),
+        }
 
 
 # ============================================================
@@ -236,48 +245,65 @@ def check_billing_discrepancy(
     The AGENT decides what that evidence means.
     """
 
-    rows = read_csv(BILLING_CSV)
+    try:
+        rows = read_csv(BILLING_CSV)
 
-    matches = [
-        row
-        for row in rows
-        if row.get("student_name", "").strip().lower()
-        == student_name.strip().lower()
-    ]
+        matches = [
+            row
+            for row in rows
+            if row.get(
+                "student_name",
+                ""
+            ).strip().lower()
+            == student_name.strip().lower()
+        ]
 
-    if not matches:
+        if not matches:
+            return {
+                "success": True,
+                "found": False,
+                "student_name": student_name,
+                "message": "No billing record found.",
+            }
+
+        records = []
+
+        for row in matches:
+
+            raw_value = row.get(
+                "verified_discrepancy",
+                ""
+            )
+
+            try:
+                discrepancy = float(
+                    raw_value
+                )
+            except ValueError:
+                discrepancy = raw_value
+
+            records.append({
+                "student_name": row.get(
+                    "student_name"
+                ),
+                "verified_discrepancy":
+                    discrepancy,
+            })
 
         return {
-            "found": False,
+            "success": True,
+            "found": True,
             "student_name": student_name,
-            "message": "No billing record found.",
+            "student_statement": body_text,
+            "billing_records": records,
         }
 
-    records = []
-
-    for row in matches:
-
-        raw_value = row.get(
-            "verified_discrepancy",
-            ""
-        )
-
-        try:
-            discrepancy = float(raw_value)
-        except ValueError:
-            discrepancy = raw_value
-
-        records.append({
-            "student_name": row.get("student_name"),
-            "verified_discrepancy": discrepancy,
-        })
-
-    return {
-        "found": True,
-        "student_name": student_name,
-        "student_statement": body_text,
-        "billing_records": records,
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "check_billing_discrepancy",
+            "error": str(e),
+        }
 
 
 # ============================================================
@@ -295,38 +321,39 @@ def route_request(
     Route a request to the appropriate university department.
     """
 
-    priority = priority.lower()
+    try:
+        priority = priority.lower()
 
-    if priority not in {
-        "low",
-        "normal",
-        "high",
-        "urgent",
-    }:
+        if priority not in {
+            "low",
+            "normal",
+            "high",
+            "urgent",
+        }:
+
+            return {
+                "success": False,
+                "tool": "route_request",
+                "error": (
+                    "priority must be "
+                    "low, normal, high, or urgent"
+                ),
+            }
 
         return {
-            "success": False,
-            "error": (
-                "priority must be "
-                "low, normal, high, or urgent"
-            ),
-        }
-
-    action = save_action(
-        "route_request",
-        request_id,
-        {
+            "success": True,
+            "status": "routed",
+            "request_id": request_id,
             "department": department,
             "priority": priority,
-        },
-    )
+        }
 
-    return {
-        "success": True,
-        "status": "routed",
-        "department": department,
-        "action_id": action["action_id"],
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "route_request",
+            "error": str(e),
+        }
 
 
 # ============================================================
@@ -343,24 +370,25 @@ def acknowledge_request(
     Record an automated acknowledgement.
     """
 
-    action = save_action(
-        "acknowledge_request",
-        request_id,
-        {
+    try:
+        return {
+            "success": True,
+            "status": "acknowledged",
+            "request_id": request_id,
             "message": message,
-        },
-    )
+        }
 
-    return {
-        "success": True,
-        "status": "acknowledged",
-        "action_id": action["action_id"],
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "acknowledge_request",
+            "error": str(e),
+        }
 
 
 # ============================================================
 # TOOL 6
-# CLOSE DUPLICATE
+# CLOSE DUPLICATE REQUEST
 # ============================================================
 
 @mcp.tool
@@ -374,20 +402,21 @@ def close_duplicate_request(
     to be a duplicate.
     """
 
-    action = save_action(
-        "close_duplicate_request",
-        request_id,
-        {
+    try:
+        return {
+            "success": True,
+            "status": "closed_as_duplicate",
+            "request_id": request_id,
             "related_request_id": related_request_id,
             "reason": reason,
-        },
-    )
+        }
 
-    return {
-        "success": True,
-        "status": "closed_as_duplicate",
-        "action_id": action["action_id"],
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "close_duplicate_request",
+            "error": str(e),
+        }
 
 
 # ============================================================
@@ -405,37 +434,39 @@ def flag_for_human_review(
     Send a request to the human review queue.
     """
 
-    priority = priority.lower()
+    try:
+        priority = priority.lower()
 
-    if priority not in {
-        "low",
-        "normal",
-        "high",
-        "urgent",
-    }:
+        if priority not in {
+            "low",
+            "normal",
+            "high",
+            "urgent",
+        }:
+
+            return {
+                "success": False,
+                "tool": "flag_for_human_review",
+                "error": (
+                    "priority must be "
+                    "low, normal, high, or urgent"
+                ),
+            }
 
         return {
-            "success": False,
-            "error": (
-                "priority must be "
-                "low, normal, high, or urgent"
-            ),
-        }
-
-    action = save_action(
-        "flag_for_human_review",
-        request_id,
-        {
+            "success": True,
+            "status": "human_review",
+            "request_id": request_id,
             "reason": reason,
             "priority": priority,
-        },
-    )
+        }
 
-    return {
-        "success": True,
-        "status": "human_review",
-        "action_id": action["action_id"],
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "flag_for_human_review",
+            "error": str(e),
+        }
 
 
 # ============================================================
@@ -454,20 +485,21 @@ def issue_courtesy_resolution(
     an eligible Tuition & Fee Billing case.
     """
 
-    action = save_action(
-        "issue_courtesy_resolution",
-        request_id,
-        {
+    try:
+        return {
+            "success": True,
+            "status": "courtesy_resolution_issued",
+            "request_id": request_id,
             "student_name": student_name,
             "reason": reason,
-        },
-    )
+        }
 
-    return {
-        "success": True,
-        "status": "courtesy_resolution_issued",
-        "action_id": action["action_id"],
-    }
+    except Exception as e:
+        return {
+            "success": False,
+            "tool": "issue_courtesy_resolution",
+            "error": str(e),
+        }
 
 
 # ============================================================
@@ -487,10 +519,15 @@ if __name__ == "__main__":
 
     if missing_files:
 
-        print("Missing required CSV files:")
+        print(
+            "Missing required CSV files:"
+        )
 
         for filename in missing_files:
-            print(" -", filename)
+            print(
+                " -",
+                filename
+            )
 
         raise SystemExit(1)
 
