@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -15,176 +16,338 @@
         rel="stylesheet"
         href="/frontend/style.css"
     >
+
 </head>
 
+
 <body>
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
 
     <header class="topbar">
 
         <div>
-            <h1>Registrar AI Service Desk</h1>
-            <p>University Service Request Operations</p>
+
+            <h1>
+                Registrar AI Service Desk
+            </h1>
+
+            <p>
+                University Service Request Operations
+            </p>
+
         </div>
 
+
         <div class="system-status">
+
             <span class="status-dot"></span>
+
             System Online
+
         </div>
 
     </header>
 
 
+
     <main class="container">
 
-        <!-- SUMMARY -->
+
+        <!-- =================================================
+             SUMMARY
+        ================================================== -->
 
         <section class="summary-grid">
 
-            <div class="summary-card">
-                <span>Incoming</span>
-                <strong id="incomingCount">0</strong>
-            </div>
 
             <div class="summary-card">
-                <span>Validated</span>
-                <strong id="validatedCount">0</strong>
+
+                <span>
+                    Incoming
+                </span>
+
+                <strong id="incomingCount">
+                    0
+                </strong>
+
             </div>
 
+
             <div class="summary-card">
-                <span>Human Review</span>
-                <strong id="reviewCount">0</strong>
+
+                <span>
+                    Validated
+                </span>
+
+                <strong id="validatedCount">
+                    0
+                </strong>
+
             </div>
+
+
+            <div class="summary-card">
+
+                <span>
+                    Human Review
+                </span>
+
+                <strong id="reviewCount">
+                    0
+                </strong>
+
+            </div>
+
 
         </section>
 
 
-        <!-- REQUEST TABLE -->
+
+        <!-- =================================================
+             INCOMING REQUESTS
+        ================================================== -->
 
         <section class="panel">
 
+
             <div class="panel-header">
 
+
                 <div>
-                    <h2>Incoming Requests</h2>
+
+                    <h2>
+                        Incoming Requests
+                    </h2>
+
                     <p>
                         Requests waiting for AI validation
                     </p>
+
                 </div>
+
 
                 <button
                     class="secondary-button"
                     onclick="loadRequests()"
                 >
+
                     ↻ Refresh
+
                 </button>
+
 
             </div>
 
 
+
             <div class="table-container">
 
+
                 <table>
+
 
                     <thead>
 
                         <tr>
-                            <th>Request ID</th>
-                            <th>Student</th>
-                            <th>Status</th>
-                            <th>Submitted</th>
-                            <th>Request</th>
-                            <th>Action</th>
+
+                            <th>
+                                Request ID
+                            </th>
+
+                            <th>
+                                Student
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Submitted
+                            </th>
+
+                            <th>
+                                Request
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
                         </tr>
 
                     </thead>
+
 
                     <tbody id="requestTable">
 
                     </tbody>
 
+
                 </table>
 
+
             </div>
+
 
         </section>
 
 
-        <!-- RESULT -->
+
+        <!-- =================================================
+             AI VALIDATION RESULT
+        ================================================== -->
 
         <section
             id="resultPanel"
             class="panel result-panel hidden"
         >
 
+
             <div class="panel-header">
 
+
                 <div>
-                    <h2>AI Validation Result</h2>
+
+                    <h2>
+                        AI Validation Result
+                    </h2>
+
                     <p id="resultRequestId"></p>
+
                 </div>
 
-                <button
-                    class="close-button"
-                    onclick="closeResult()"
-                >
-                    ×
-                </button>
+
+
+                <div class="result-actions">
+
+
+                    <button
+                        id="saveButton"
+                        class="validate-button"
+                        onclick="saveCompletedRequest()"
+                    >
+
+                        Save to Completed
+
+                    </button>
+
+
+                    <button
+                        class="close-button"
+                        onclick="closeResult()"
+                    >
+
+                        ×
+
+                    </button>
+
+
+                </div>
+
 
             </div>
 
 
+
             <div class="result-content">
+
+
+                <!-- CLASSIFICATION / DECISION -->
 
                 <div class="result-grid">
 
+
                     <div class="result-item">
-                        <span>Classification</span>
+
+                        <span>
+                            Classification
+                        </span>
+
                         <strong id="classification">
                             —
                         </strong>
+
                     </div>
 
+
+
                     <div class="result-item">
-                        <span>Decision</span>
+
+                        <span>
+                            Decision
+                        </span>
+
                         <strong id="decision">
                             —
                         </strong>
+
                     </div>
+
 
                 </div>
 
 
+
+                <!-- ACTIONS -->
+
                 <div class="result-section">
 
-                    <h3>Actions Taken</h3>
+
+                    <h3>
+                        Actions Taken
+                    </h3>
+
 
                     <div
                         id="actions"
                         class="actions-list"
                     >
+
                     </div>
+
 
                 </div>
 
 
+
+                <!-- REASON -->
+
                 <div class="result-section">
 
-                    <h3>Reason</h3>
+
+                    <h3>
+                        Reason
+                    </h3>
+
 
                     <div
                         id="reason"
                         class="reason-box"
                     >
+
                     </div>
+
 
                 </div>
 
+
             </div>
+
 
         </section>
 
+
     </main>
 
+
+
+    <!-- =====================================================
+         LOADING OVERLAY
+    ====================================================== -->
 
     <div
         id="loading"
@@ -200,7 +363,13 @@
     </div>
 
 
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
     <script src="/frontend/registrar.js"></script>
+
 
 </body>
 
