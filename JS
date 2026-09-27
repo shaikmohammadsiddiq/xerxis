@@ -24,11 +24,9 @@ async function loadRequests() {
 
         showLoading();
 
-
         const response = await fetch(
             `${API_URL}/requests`
         );
-
 
         if (!response.ok) {
 
@@ -38,9 +36,7 @@ async function loadRequests() {
 
         }
 
-
         const data = await response.json();
-
 
         if (!data.success) {
 
@@ -51,12 +47,9 @@ async function loadRequests() {
 
         }
 
-
         requests = data.requests || [];
 
-
         renderRequests();
-
 
     } catch (error) {
 
@@ -64,7 +57,6 @@ async function loadRequests() {
             "Load requests error:",
             error
         );
-
 
         alert(
             "Unable to load incoming requests.\n\n" +
@@ -87,23 +79,15 @@ async function loadRequests() {
 function renderRequests() {
 
     const table =
-        document.getElementById(
-            "requestTable"
-        );
-
+        document.getElementById("requestTable");
 
     table.innerHTML = "";
 
 
     document.getElementById(
         "incomingCount"
-    ).textContent =
-        requests.length;
+    ).textContent = requests.length;
 
-
-    // --------------------------------------------------------
-    // EMPTY
-    // --------------------------------------------------------
 
     if (requests.length === 0) {
 
@@ -115,9 +99,7 @@ function renderRequests() {
                     colspan="6"
                     class="empty"
                 >
-
                     No incoming requests.
-
                 </td>
 
             </tr>
@@ -125,16 +107,10 @@ function renderRequests() {
         `;
 
         return;
-
     }
 
 
-    // --------------------------------------------------------
-    // REQUEST ROWS
-    // --------------------------------------------------------
-
     requests.forEach(request => {
-
 
         const row =
             document.createElement("tr");
@@ -220,7 +196,6 @@ function renderRequests() {
 
 async function validateRequest(requestId) {
 
-
     const request =
         requests.find(
             item =>
@@ -230,9 +205,7 @@ async function validateRequest(requestId) {
 
     if (!request) {
 
-        alert(
-            "Request not found."
-        );
+        alert("Request not found.");
 
         return;
 
@@ -244,7 +217,6 @@ async function validateRequest(requestId) {
 
     try {
 
-
         const response =
             await fetch(
                 `${API_URL}/processRequest`,
@@ -253,10 +225,8 @@ async function validateRequest(requestId) {
                     method: "POST",
 
                     headers: {
-
                         "Content-Type":
                             "application/json"
-
                     },
 
                     body: JSON.stringify({
@@ -279,39 +249,42 @@ async function validateRequest(requestId) {
             );
 
 
-        const data =
-            await response.json();
-
-
         if (!response.ok) {
 
+            const errorText =
+                await response.text();
+
             throw new Error(
-                data.detail ||
-                data.message ||
+                errorText ||
                 "Agent validation failed."
             );
 
         }
 
 
-        if (!data.agent_result) {
+        // IMPORTANT:
+        // /processRequest directly returns
+        // the structured agent response.
 
-            throw new Error(
-                "No agent result received."
-            );
-
-        }
+        const result =
+            await response.json();
 
 
-        // Store exact structured response
+        console.log(
+            "Agent structured response:",
+            result
+        );
+
+
+        // Store the exact agent JSON
 
         currentAgentResult =
-            data.agent_result;
+            result;
 
 
-        // Show result
+        // Display the result
 
-        showResult(data);
+        showResult(result);
 
 
     } catch (error) {
@@ -320,7 +293,6 @@ async function validateRequest(requestId) {
             "Validation error:",
             error
         );
-
 
         alert(
             error.message ||
@@ -340,52 +312,41 @@ async function validateRequest(requestId) {
 // SHOW AGENT RESULT
 // ============================================================
 
-function showResult(data) {
-
-
-    const result =
-        data.agent_result;
-
+function showResult(result) {
 
     document.getElementById(
         "resultPanel"
-    ).classList.remove(
-        "hidden"
-    );
+    ).classList.remove("hidden");
 
 
-    // Request ID
+    // --------------------------------------------------------
+    // REQUEST ID
+    // --------------------------------------------------------
 
     document.getElementById(
         "resultRequestId"
     ).textContent =
-
-        `Request ID: ${
-            result.request_id ||
-            data.request?.request_id ||
-            ""
-        }`;
+        `Request ID: ${result.request_id || ""}`;
 
 
-    // Classification
+    // --------------------------------------------------------
+    // CLASSIFICATION
+    // --------------------------------------------------------
 
     document.getElementById(
         "classification"
     ).textContent =
-
-        result.classification ||
-        "—";
+        result.classification || "—";
 
 
-    // Decision
+    // --------------------------------------------------------
+    // DECISION
+    // --------------------------------------------------------
 
     document.getElementById(
         "decision"
     ).textContent =
-
-        formatDecision(
-            result.decision
-        );
+        formatDecision(result.decision);
 
 
     // --------------------------------------------------------
@@ -393,10 +354,7 @@ function showResult(data) {
     // --------------------------------------------------------
 
     const actions =
-        document.getElementById(
-            "actions"
-        );
-
+        document.getElementById("actions");
 
     actions.innerHTML = "";
 
@@ -407,11 +365,8 @@ function showResult(data) {
 
     actionList.forEach(action => {
 
-
         const item =
-            document.createElement(
-                "div"
-            );
+            document.createElement("div");
 
 
         item.className =
@@ -447,13 +402,12 @@ function showResult(data) {
     document.getElementById(
         "reason"
     ).textContent =
-
         result.reason ||
         "No reason provided.";
 
 
     // --------------------------------------------------------
-    // ENABLE SAVE
+    // ENABLE SAVE BUTTON
     // --------------------------------------------------------
 
     const saveButton =
@@ -463,7 +417,6 @@ function showResult(data) {
 
 
     saveButton.disabled = false;
-
 
     saveButton.textContent =
         "Save to Completed";
@@ -476,7 +429,6 @@ function showResult(data) {
 // ============================================================
 
 async function saveCompletedRequest() {
-
 
     if (!currentAgentResult) {
 
@@ -494,9 +446,8 @@ async function saveCompletedRequest() {
 
     try {
 
-
-        // Send the exact structured
-        // agent JSON to FastAPI
+        // Send the EXACT structured
+        // response returned by the agent.
 
         const response =
             await fetch(
@@ -506,10 +457,8 @@ async function saveCompletedRequest() {
                     method: "POST",
 
                     headers: {
-
                         "Content-Type":
                             "application/json"
-
                     },
 
                     body: JSON.stringify(
@@ -546,7 +495,7 @@ async function saveCompletedRequest() {
 
 
         // ----------------------------------------------------
-        // UPDATE COUNTERS
+        // UPDATE VALIDATED COUNT
         // ----------------------------------------------------
 
         const validatedCount =
@@ -562,7 +511,9 @@ async function saveCompletedRequest() {
             ) + 1;
 
 
-        // Human review
+        // ----------------------------------------------------
+        // HUMAN REVIEW COUNT
+        // ----------------------------------------------------
 
         if (
 
@@ -609,7 +560,7 @@ async function saveCompletedRequest() {
 
 
         // ----------------------------------------------------
-        // UPDATE BUTTON
+        // UPDATE SAVE BUTTON
         // ----------------------------------------------------
 
         const saveButton =
@@ -619,7 +570,6 @@ async function saveCompletedRequest() {
 
 
         saveButton.disabled = true;
-
 
         saveButton.textContent =
             "Saved ✓";
