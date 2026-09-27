@@ -1,9 +1,13 @@
 let requests = [];
 
-
-// Stores the agent's structured response after validation.
-// It is sent to /completeRequest only when Save is clicked.
 let currentAgentResult = null;
+
+
+// ============================================================
+// FASTAPI URL
+// ============================================================
+
+const API_URL = "http://127.0.0.1:8000";
 
 
 // ============================================================
@@ -14,84 +18,28 @@ async function loadRequests() {
 
     try {
 
-        console.log("Calling /requests...");
-
-        const response = await fetch("/requests");
-
-        console.log(
-            "GET /requests status:",
-            response.status
-        );
-
-
-        // Read response as text first so errors are visible
-        const rawText = await response.text();
-
-        console.log(
-            "Raw /requests response:",
-            rawText
-        );
-
+        const response =
+            await fetch(`${API_URL}/requests`);
 
         if (!response.ok) {
 
             throw new Error(
-                `HTTP ${response.status}: ${rawText}`
+                `HTTP ${response.status}`
             );
 
         }
 
+        const data =
+            await response.json();
 
-        let data;
-
-        try {
-
-            data = JSON.parse(rawText);
-
-        } catch (error) {
-
-            throw new Error(
-                "Server did not return valid JSON."
-            );
-
-        }
-
-
-        console.log(
-            "Parsed /requests response:",
-            data
-        );
-
-
-        if (!data.success) {
-
-            throw new Error(
-                data.message ||
-                "API returned success=false"
-            );
-
-        }
-
-
-        requests = data.requests || [];
-
-
-        console.log(
-            "Requests loaded:",
-            requests
-        );
-
+        requests =
+            data.requests || [];
 
         renderRequests();
 
-
     } catch (error) {
 
-        console.error(
-            "LOAD REQUESTS ERROR:",
-            error
-        );
-
+        console.error(error);
 
         alert(
             "Unable to load incoming requests.\n\n" +
@@ -103,9 +51,8 @@ async function loadRequests() {
 }
 
 
-
 // ============================================================
-// RENDER REQUEST TABLE
+// RENDER REQUESTS
 // ============================================================
 
 function renderRequests() {
@@ -115,7 +62,6 @@ function renderRequests() {
             "requestTable"
         );
 
-
     table.innerHTML = "";
 
 
@@ -124,11 +70,6 @@ function renderRequests() {
     ).textContent =
         requests.length;
 
-
-
-    // --------------------------------------------------------
-    // NO REQUESTS
-    // --------------------------------------------------------
 
     if (requests.length === 0) {
 
@@ -140,9 +81,7 @@ function renderRequests() {
                     colspan="6"
                     class="empty"
                 >
-
                     No incoming requests.
-
                 </td>
 
             </tr>
@@ -154,11 +93,6 @@ function renderRequests() {
     }
 
 
-
-    // --------------------------------------------------------
-    // RENDER EACH REQUEST
-    // --------------------------------------------------------
-
     requests.forEach(request => {
 
         const row =
@@ -168,26 +102,18 @@ function renderRequests() {
         row.innerHTML = `
 
             <td>
-
                 <strong>
-
                     ${escapeHtml(
                         request.request_id || ""
                     )}
-
                 </strong>
-
             </td>
 
-
             <td>
-
                 ${escapeHtml(
                     request.student_name || ""
                 )}
-
             </td>
-
 
             <td>
 
@@ -201,31 +127,22 @@ function renderRequests() {
 
             </td>
 
-
             <td>
-
                 ${escapeHtml(
                     request.submitted_at || ""
                 )}
-
             </td>
 
-
             <td class="request-text">
-
                 ${escapeHtml(
                     request.body_text || ""
                 )}
-
             </td>
-
 
             <td>
 
                 <button
-
                     class="validate-button"
-
                     onclick="
                         validateRequest(
                             '${escapeJs(
@@ -233,11 +150,8 @@ function renderRequests() {
                             )}'
                         )
                     "
-
                 >
-
                     Validate
-
                 </button>
 
             </td>
@@ -252,21 +166,11 @@ function renderRequests() {
 }
 
 
-
 // ============================================================
 // VALIDATE REQUEST
 // ============================================================
 
 async function validateRequest(requestId) {
-
-
-    console.log(
-        "Validating request:",
-        requestId
-    );
-
-
-    // Find request from current list
 
     const request =
         requests.find(
@@ -277,19 +181,11 @@ async function validateRequest(requestId) {
 
     if (!request) {
 
-        alert(
-            "Request not found."
-        );
+        alert("Request not found.");
 
         return;
 
     }
-
-
-    console.log(
-        "Request being sent to agent:",
-        request
-    );
 
 
     showLoading();
@@ -297,23 +193,16 @@ async function validateRequest(requestId) {
 
     try {
 
-
-        // ----------------------------------------------------
-        // CALL EXISTING AGENT ENDPOINT
-        // ----------------------------------------------------
-
         const response =
             await fetch(
-                "/processRequest",
+                `${API_URL}/processRequest`,
                 {
 
                     method: "POST",
 
                     headers: {
-
                         "Content-Type":
                             "application/json"
-
                     },
 
                     body: JSON.stringify({
@@ -336,100 +225,35 @@ async function validateRequest(requestId) {
             );
 
 
-        const rawText =
-            await response.text();
-
-
-        console.log(
-            "Raw /processRequest response:",
-            rawText
-        );
+        const data =
+            await response.json();
 
 
         if (!response.ok) {
 
             throw new Error(
-                `HTTP ${response.status}: ${rawText}`
+                data.detail ||
+                "Validation failed"
             );
 
         }
 
-
-        let data;
-
-        try {
-
-            data =
-                JSON.parse(rawText);
-
-        } catch (error) {
-
-            throw new Error(
-                "Agent endpoint did not return valid JSON."
-            );
-
-        }
-
-
-        console.log(
-            "Agent response:",
-            data
-        );
-
-
-        if (!data.success) {
-
-            throw new Error(
-                data.message ||
-                "Agent processing failed."
-            );
-
-        }
-
-
-        if (!data.agent_result) {
-
-            throw new Error(
-                "Agent response does not contain agent_result."
-            );
-
-        }
-
-
-        // ----------------------------------------------------
-        // STORE EXACT AGENT JSON
-        // ----------------------------------------------------
 
         currentAgentResult =
             data.agent_result;
 
-
-        console.log(
-            "Stored agent result:",
-            currentAgentResult
-        );
-
-
-        // ----------------------------------------------------
-        // DISPLAY RESULT
-        // ----------------------------------------------------
 
         showResult(data);
 
 
     } catch (error) {
 
-        console.error(
-            "VALIDATION ERROR:",
-            error
-        );
-
+        console.error(error);
 
         alert(
             error.message ||
             "Agent validation failed."
         );
-
 
     } finally {
 
@@ -440,25 +264,15 @@ async function validateRequest(requestId) {
 }
 
 
-
 // ============================================================
-// DISPLAY AGENT RESULT
+// SHOW AGENT RESULT
 // ============================================================
 
 function showResult(data) {
 
-
     const result =
         data.agent_result;
 
-
-    console.log(
-        "Displaying agent result:",
-        result
-    );
-
-
-    // Show result panel
 
     document.getElementById(
         "resultPanel"
@@ -466,11 +280,6 @@ function showResult(data) {
         "hidden"
     );
 
-
-
-    // --------------------------------------------------------
-    // REQUEST ID
-    // --------------------------------------------------------
 
     document.getElementById(
         "resultRequestId"
@@ -483,37 +292,20 @@ function showResult(data) {
         }`;
 
 
-
-    // --------------------------------------------------------
-    // CLASSIFICATION
-    // --------------------------------------------------------
-
     document.getElementById(
         "classification"
     ).textContent =
-
         result.classification ||
         "—";
 
 
-
-    // --------------------------------------------------------
-    // DECISION
-    // --------------------------------------------------------
-
     document.getElementById(
         "decision"
     ).textContent =
-
         formatDecision(
             result.decision
         );
 
-
-
-    // --------------------------------------------------------
-    // ACTIONS
-    // --------------------------------------------------------
 
     const actions =
         document.getElementById(
@@ -530,7 +322,6 @@ function showResult(data) {
 
     actionList.forEach(action => {
 
-
         const item =
             document.createElement(
                 "div"
@@ -543,16 +334,12 @@ function showResult(data) {
 
         item.innerHTML = `
 
-            <span class="check">
-                ✓
-            </span>
+            <span class="check">✓</span>
 
             <span>
-
                 ${escapeHtml(
                     formatAction(action)
                 )}
-
             </span>
 
         `;
@@ -563,38 +350,24 @@ function showResult(data) {
     });
 
 
-
-    // --------------------------------------------------------
-    // REASON
-    // --------------------------------------------------------
-
     document.getElementById(
         "reason"
     ).textContent =
-
         result.reason ||
         "No reason provided.";
 
 
-
-    // --------------------------------------------------------
-    // ENABLE SAVE BUTTON
-    // --------------------------------------------------------
-
-    const saveButton =
-        document.getElementById(
-            "saveButton"
-        );
+    document.getElementById(
+        "saveButton"
+    ).disabled = false;
 
 
-    saveButton.disabled = false;
-
-
-    saveButton.textContent =
+    document.getElementById(
+        "saveButton"
+    ).textContent =
         "Save to Completed";
 
 }
-
 
 
 // ============================================================
@@ -602,7 +375,6 @@ function showResult(data) {
 // ============================================================
 
 async function saveCompletedRequest() {
-
 
     if (!currentAgentResult) {
 
@@ -615,34 +387,21 @@ async function saveCompletedRequest() {
     }
 
 
-    console.log(
-        "Saving agent result:",
-        currentAgentResult
-    );
-
-
     showLoading();
 
 
     try {
 
-
-        // ----------------------------------------------------
-        // SEND EXACT AGENT JSON
-        // ----------------------------------------------------
-
         const response =
             await fetch(
-                "/completeRequest",
+                `${API_URL}/completeRequest`,
                 {
 
                     method: "POST",
 
                     headers: {
-
                         "Content-Type":
                             "application/json"
-
                     },
 
                     body: JSON.stringify(
@@ -653,79 +412,35 @@ async function saveCompletedRequest() {
             );
 
 
-        const rawText =
-            await response.text();
+        const data =
+            await response.json();
 
 
-        console.log(
-            "Raw /completeRequest response:",
-            rawText
-        );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                `HTTP ${response.status}: ${rawText}`
-            );
-
-        }
-
-
-        let data;
-
-        try {
-
-            data =
-                JSON.parse(rawText);
-
-        } catch (error) {
-
-            throw new Error(
-                "Complete request endpoint did not return valid JSON."
-            );
-
-        }
-
-
-        console.log(
-            "Complete request response:",
-            data
-        );
-
-
-        if (!data.success) {
+        if (!response.ok || !data.success) {
 
             throw new Error(
                 data.message ||
-                "Failed to save request."
+                data.detail ||
+                "Failed to save request"
             );
 
         }
 
 
+        // --------------------------------------------
+        // UPDATE COUNTERS
+        // --------------------------------------------
 
-        // ----------------------------------------------------
-        // UPDATE VALIDATED COUNT
-        // ----------------------------------------------------
+        document.getElementById(
+            "validatedCount"
+        ).textContent =
 
-        const validatedCount =
-            document.getElementById(
-                "validatedCount"
-            );
-
-
-        validatedCount.textContent =
             parseInt(
-                validatedCount.textContent ||
-                "0"
+                document.getElementById(
+                    "validatedCount"
+                ).textContent || "0"
             ) + 1;
 
-
-
-        // ----------------------------------------------------
-        // HUMAN REVIEW COUNT
-        // ----------------------------------------------------
 
         if (
 
@@ -737,30 +452,24 @@ async function saveCompletedRequest() {
 
         ) {
 
-            const reviewCount =
-                document.getElementById(
-                    "reviewCount"
-                );
+            document.getElementById(
+                "reviewCount"
+            ).textContent =
 
-
-            reviewCount.textContent =
                 parseInt(
-                    reviewCount.textContent ||
-                    "0"
+                    document.getElementById(
+                        "reviewCount"
+                    ).textContent || "0"
                 ) + 1;
 
         }
 
 
+        // --------------------------------------------
+        // REMOVE FROM TABLE
+        // --------------------------------------------
 
-        // ----------------------------------------------------
-        // REMOVE FROM CURRENT TABLE
-        //
-        // The backend has already removed the request
-        // from incoming_requests.csv.
-        // ----------------------------------------------------
-
-        const completedRequestId =
+        const completedId =
             currentAgentResult.request_id;
 
 
@@ -768,17 +477,16 @@ async function saveCompletedRequest() {
             requests.filter(
                 request =>
                     request.request_id !==
-                    completedRequestId
+                    completedId
             );
 
 
         renderRequests();
 
 
-
-        // ----------------------------------------------------
-        // UPDATE SAVE BUTTON
-        // ----------------------------------------------------
+        // --------------------------------------------
+        // UPDATE BUTTON
+        // --------------------------------------------
 
         const saveButton =
             document.getElementById(
@@ -788,15 +496,9 @@ async function saveCompletedRequest() {
 
         saveButton.disabled = true;
 
-
         saveButton.textContent =
             "Saved ✓";
 
-
-
-        // ----------------------------------------------------
-        // CLEAR STORED RESULT
-        // ----------------------------------------------------
 
         currentAgentResult = null;
 
@@ -808,17 +510,12 @@ async function saveCompletedRequest() {
 
     } catch (error) {
 
-        console.error(
-            "SAVE ERROR:",
-            error
-        );
-
+        console.error(error);
 
         alert(
             error.message ||
-            "Failed to save completed request."
+            "Failed to save request."
         );
-
 
     } finally {
 
@@ -827,7 +524,6 @@ async function saveCompletedRequest() {
     }
 
 }
-
 
 
 // ============================================================
@@ -845,27 +541,18 @@ function closeResult() {
 }
 
 
-
 // ============================================================
-// FORMAT DECISION
+// FORMATTING
 // ============================================================
 
 function formatDecision(decision) {
 
     if (!decision) {
-
         return "—";
-
     }
 
-
     return String(decision)
-
-        .replaceAll(
-            "_",
-            " "
-        )
-
+        .replaceAll("_", " ")
         .replace(
             /\b\w/g,
             char =>
@@ -874,21 +561,11 @@ function formatDecision(decision) {
 
 }
 
-
-
-// ============================================================
-// FORMAT ACTION
-// ============================================================
 
 function formatAction(action) {
 
     return String(action)
-
-        .replaceAll(
-            "_",
-            " "
-        )
-
+        .replaceAll("_", " ")
         .replace(
             /\b\w/g,
             char =>
@@ -896,7 +573,6 @@ function formatAction(action) {
         );
 
 }
-
 
 
 // ============================================================
@@ -925,83 +601,35 @@ function hideLoading() {
 }
 
 
-
 // ============================================================
-// HTML ESCAPING
+// ESCAPING
 // ============================================================
 
 function escapeHtml(value) {
 
     return String(value)
-
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 
 }
 
-
-
-// ============================================================
-// JAVASCRIPT ESCAPING
-// ============================================================
 
 function escapeJs(value) {
 
     return String(value)
-
-        .replaceAll(
-            "\\",
-            "\\\\"
-        )
-
-        .replaceAll(
-            "'",
-            "\\'"
-        )
-
-        .replaceAll(
-            "\n",
-            "\\n"
-        )
-
-        .replaceAll(
-            "\r",
-            "\\r"
-        );
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'")
+        .replaceAll("\n", "\\n")
+        .replaceAll("\r", "\\r");
 
 }
-
 
 
 // ============================================================
 // INITIAL LOAD
 // ============================================================
-
-console.log(
-    "Registrar dashboard loaded."
-);
-
 
 loadRequests();
