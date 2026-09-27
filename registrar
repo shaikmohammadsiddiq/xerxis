@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Registrar AI Service Desk</title>
+
+    <link
+        rel="stylesheet"
+        href="/frontend/style.css"
+    >
+</head>
+
+<body>
+
+    <header class="topbar">
+
+        <div>
+            <h1>Registrar AI Service Desk</h1>
+            <p>University Service Request Operations</p>
+        </div>
+
+        <div class="system-status">
+            <span class="status-dot"></span>
+            System Online
+        </div>
+
+    </header>
+
+
+    <main class="container">
+
+        <!-- SUMMARY -->
+
+        <section class="summary-grid">
+
+            <div class="summary-card">
+                <span>Incoming</span>
+                <strong id="incomingCount">0</strong>
+            </div>
+
+            <div class="summary-card">
+                <span>Validated</span>
+                <strong id="validatedCount">0</strong>
+            </div>
+
+            <div class="summary-card">
+                <span>Human Review</span>
+                <strong id="reviewCount">0</strong>
+            </div>
+
+        </section>
+
+
+        <!-- REQUEST TABLE -->
+
+        <section class="panel">
+
+            <div class="panel-header">
+
+                <div>
+                    <h2>Incoming Requests</h2>
+                    <p>
+                        Requests waiting for AI validation
+                    </p>
+                </div>
+
+                <button
+                    class="secondary-button"
+                    onclick="loadRequests()"
+                >
+                    ↻ Refresh
+                </button>
+
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Student</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Request</th>
+                            <th>Action</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="requestTable">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- RESULT -->
+
+        <section
+            id="resultPanel"
+            class="panel result-panel hidden"
+        >
+
+            <div class="panel-header">
+
+                <div>
+                    <h2>AI Validation Result</h2>
+                    <p id="resultRequestId"></p>
+                </div>
+
+                <button
+                    class="close-button"
+                    onclick="closeResult()"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <div class="result-content">
+
+                <div class="result-grid">
+
+                    <div class="result-item">
+                        <span>Classification</span>
+                        <strong id="classification">
+                            —
+                        </strong>
+                    </div>
+
+                    <div class="result-item">
+                        <span>Decision</span>
+                        <strong id="decision">
+                            —
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <div class="result-section">
+
+                    <h3>Actions Taken</h3>
+
+                    <div
+                        id="actions"
+                        class="actions-list"
+                    >
+                    </div>
+
+                </div>
+
+
+                <div class="result-section">
+
+                    <h3>Reason</h3>
+
+                    <div
+                        id="reason"
+                        class="reason-box"
+                    >
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <div
+        id="loading"
+        class="loading hidden"
+    >
+
+        <div class="spinner"></div>
+
+        <p>
+            AI agent is processing the request...
+        </p>
+
+    </div>
+
+
+    <script src="/frontend/registrar.js"></script>
+
+</body>
+
+</html>
