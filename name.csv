@@ -1,0 +1,16 @@
+request_id,student_id,student_name,student_status,request_type,body_text,submitted_at,status
+REQ1001,STU001,John Smith,Active,Tuition & Fee Billing,"I was charged an incorrect tuition fee for this semester. Please check my billing record.",2026-09-27 09:15:00,NEW
+REQ1002,STU002,Emily Johnson,Active,Transcript Request,"I need an official transcript for my higher studies application.",2026-09-27 09:22:00,NEW
+REQ1003,STU003,Michael Brown,Active,Registration Hold,"There is a registration hold on my account. Please let me know why it was placed.",2026-09-27 09:35:00,NEW
+REQ1004,STU004,David Wilson,Active,Enrollment Verification,"I need an enrollment verification letter for my internship.",2026-09-27 09:48:00,NEW
+REQ1005,STU005,Jessica Davis,Active,Grade Dispute,"My final grade for the course appears to be incorrect. I would like this to be reviewed.",2026-09-27 10:02:00,NEW
+REQ1006,STU001,John Smith,Active,Tuition & Fee Billing,"My account shows a duplicate charge. I believe I have been billed twice for the same tuition payment.",2026-09-27 10:15:00,NEW
+REQ1007,STU006,Robert Miller,Active,Transcript Request,"Please provide my official academic transcript.",2026-09-27 10:27:00,NEW
+REQ1008,STU007,Sarah Anderson,Active,Tuition & Fee Billing,"The amount shown in my student billing account does not match what I was expecting.",2026-09-27 10:41:00,NEW
+REQ1009,STU008,Daniel Thomas,Active,Registration Hold,"I cannot register for my courses because there is a hold on my account.",2026-09-27 10:55:00,NEW
+REQ1010,STU009,Lisa Martinez,Active,Enrollment Verification,"I need proof that I am currently enrolled as a student.",2026-09-27 11:10:00,NEW
+REQ1011,STU010,James Taylor,Active,Grade Dispute,"I believe there is an error in the grade recorded for one of my courses.",2026-09-27 11:24:00,NEW
+REQ1012,STU002,Emily Johnson,Active,Tuition & Fee Billing,"I was charged a fee that I do not recognize. Please verify my billing details.",2026-09-27 11:39:00,NEW
+REQ1013,STU011,William Moore,Active,Transcript Request,"I would like to request my official transcript for a job application.",2026-09-27 11:52:00,NEW
+REQ1014,STU012,Olivia Jackson,Active,Registration Hold,"Please help me understand and resolve the registration hold on my account.",2026-09-27 12:08:00,NEW
+REQ1015,STU013,Active,Enrollment Verification,"Please provide an enrollment verification document.",2026-09-27 12:20:00,NEW
