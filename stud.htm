@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>University Student Service Request</title>
+
+    <link rel="stylesheet" href="student.css">
+
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <div>
+
+        <h1>University Student Services</h1>
+
+        <p>Registrar Service Request Portal</p>
+
+    </div>
+
+    <div class="status">
+        <span class="status-dot"></span>
+        Online
+    </div>
+
+</header>
+
+
+<main class="container">
+
+    <section class="form-card">
+
+        <div class="form-header">
+
+            <h2>Submit a Service Request</h2>
+
+            <p>
+                Submit your request to the Registrar Office.
+                Your request will be reviewed and processed by
+                the university service system.
+            </p>
+
+        </div>
+
+
+        <form id="requestForm">
+
+
+            <!-- STUDENT ID -->
+
+            <div class="form-group">
+
+                <label for="studentId">
+                    Student ID
+                </label>
+
+                <input
+                    type="text"
+                    id="studentId"
+                    placeholder="e.g. STU013"
+                    required
+                >
+
+            </div>
+
+
+            <!-- STUDENT NAME -->
+
+            <div class="form-group">
+
+                <label for="studentName">
+                    Student Name
+                </label>
+
+                <input
+                    type="text"
+                    id="studentName"
+                    placeholder="Enter your full name"
+                    required
+                >
+
+            </div>
+
+
+            <!-- STUDENT STATUS -->
+
+            <div class="form-group">
+
+                <label for="studentStatus">
+                    Student Status
+                </label>
+
+                <select
+                    id="studentStatus"
+                    required
+                >
+
+                    <option value="">
+                        Select status
+                    </option>
+
+                    <option value="Active">
+                        Active
+                    </option>
+
+                    <option value="Graduated">
+                        Graduated
+                    </option>
+
+                    <option value="Inactive">
+                        Inactive
+                    </option>
+
+                    <option value="On Leave">
+                        On Leave
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- REQUEST TYPE -->
+
+            <div class="form-group">
+
+                <label for="requestType">
+                    Request Type
+                </label>
+
+                <select id="requestType">
+
+                    <option value="">
+                        Let AI determine request type
+                    </option>
+
+                    <option value="Registration Hold">
+                        Registration Hold
+                    </option>
+
+                    <option value="Transcript Request">
+                        Transcript Request
+                    </option>
+
+                    <option value="Enrollment Verification">
+                        Enrollment Verification
+                    </option>
+
+                    <option value="Grade Dispute">
+                        Grade Dispute
+                    </option>
+
+                    <option value="Tuition & Fee Billing">
+                        Tuition & Fee Billing
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- REQUEST -->
+
+            <div class="form-group">
+
+                <label for="requestText">
+                    Describe Your Request
+                </label>
+
+                <textarea
+                    id="requestText"
+                    rows="7"
+                    placeholder="Describe your issue or request in detail..."
+                    required
+                ></textarea>
+
+                <span class="help-text">
+                    Please provide enough information for the Registrar
+                    Office to understand your request.
+                </span>
+
+            </div>
+
+
+            <!-- SUBMIT -->
+
+            <button
+                type="submit"
+                id="submitButton"
+                class="submit-button"
+            >
+                Submit Request
+            </button>
+
+        </form>
+
+
+        <!-- SUCCESS -->
+
+        <div
+            id="successPanel"
+            class="success-panel hidden"
+        >
+
+            <div class="success-icon">
+                ✓
+            </div>
+
+            <h2>
+                Request Submitted Successfully
+            </h2>
+
+            <p>
+                Your request has been submitted to the
+                Registrar Office.
+            </p>
+
+            <div class="request-id-box">
+
+                <span>
+                    Your Request ID
+                </span>
+
+                <strong id="requestId">
+                    —
+                </strong>
+
+            </div>
+
+            <p class="tracking-note">
+                Please save your Request ID for future reference.
+            </p>
+
+            <button
+                class="new-request-button"
+                onclick="newRequest()"
+            >
+                Submit Another Request
+            </button>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- LOADING -->
+
+<div
+    id="loading"
+    class="loading hidden"
+>
+
+    <div class="spinner"></div>
+
+    <p>
+        Submitting your request...
+    </p>
+
+</div>
+
+
+<script src="student.js"></script>
+
+</body>
+
+</html>
